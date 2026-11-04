@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find Your Essence</title>
+<style>
+:root{--bg:#faf7f0;--ink:#2b3a33;--muted:#5d6b64;--card:#fff;--line:#e4ddcc;--healer:#4f9a6b;--helper:#d19a2a;--second:#8a6bb8;--accent:#2f7a5a}
+@media (prefers-color-scheme:dark){:root{--bg:#18211d;--ink:#eef2ee;--muted:#a9b8af;--card:#233029;--line:#34463c;--accent:#6fcf9f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:1.15rem;cursor:pointer}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:none;border:1px solid var(--line);color:var(--ink);border-radius:20px;padding:6px 12px;font:inherit;font-size:.9rem;cursor:pointer}
+nav button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.xp{font-size:.85rem;color:var(--muted)}
+main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h2{margin:.2em 0 .4em}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 18px;font:inherit;cursor:pointer}
+.btn.alt{background:none;color:var(--ink);border:1px solid var(--line)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;border-top:5px solid var(--line)}
+.card.healer{border-top-color:var(--healer)}.card.helper{border-top-color:var(--helper)}.card.second{border-top-color:var(--second)}
+.tag{display:inline-block;font-size:.75rem;padding:2px 9px;border-radius:12px;color:#fff}
+.tag.healer{background:var(--healer)}.tag.helper{background:var(--helper)}.tag.second{background:var(--second)}
+.feel{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 8px;font:inherit;cursor:pointer}
+.feel.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--card))}
+.opts{display:grid;gap:8px}
+.note{font-size:.85rem;color:var(--muted)}
+.disc{background:color-mix(in srgb,var(--helper) 15%,var(--card));border:1px solid var(--helper);border-radius:12px;padding:10px 14px;font-size:.88rem;margin:16px 0}
+.good{border-color:var(--healer)!important}.bad{border-color:#c0504d!important}
+.locked{opacity:.4}
+.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--accent)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;font-size:.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1 onclick="go('home')">🌸 Find Your Essence</h1>
+  <nav id="nav"></nav>
+  <div class="xp" id="xp"></div>
+</header>
+<main id="app"></main>
+<footer>Prototype. Group membership and blend size checked against healingherbs.co.uk; remedy descriptions are paraphrased and still need a practitioner review. Flower essences are complementary and do not diagnose, treat or cure any condition.</footer>
+
+<script>
+// ---------- DATA ----------
+const G={healer:'Healer',helper:'Helper',second:'Second Nineteen'};
+const R=[
+// id, name, group, summary, feelings[]
+['agrimony','Agrimony','healer','Hides worries behind a cheerful face.',["I look cheerful but hide my worries","I avoid arguments and keep the peace at any cost"]],
+['centaury','Centaury','healer','Finds it hard to say no.',["I can't say no and people take advantage of me","I put everyone else's needs before mine"]],
+['chicory','Chicory','healer','Loving but possessive, wants love back.',["I feel hurt when loved ones don't give me attention","I do a lot for others and expect it returned"]],
+['clematis','Clematis','healer','Daydreamy, not fully present.',["I drift off and find it hard to focus on the here and now","I live in my head, waiting for something better"]],
+['gentian','Gentian','healer','Easily discouraged by setbacks.',["A small setback makes me doubt myself and want to give up","I feel disheartened when things go wrong"]],
+['impatiens','Impatiens','healer','Impatient, quick and irritable.',["I get irritated when others are slow","I rush and want everything done now"]],
+['mimulus','Mimulus','healer','Known, nameable fears and shyness.',["I'm afraid of something specific, like flying, heights or speaking up","I feel shy and timid around others"]],
+['rockrose','Rock Rose','healer','Terror and panic.',["I'm in a panic or terrified","I feel frozen with fright"]],
+['scleranthus','Scleranthus','healer','Indecision and swinging moods.',["I can't decide between two choices","My moods swing up and down"]],
+['vervain','Vervain','healer','Over-enthusiastic and tense.',["I get so intense about my views that I can't relax","I push on past the point of exhaustion"]],
+['vine','Vine','helper','Domineering, strong-willed, takes charge.',["I like to be in charge and push people to do things my way","I get frustrated when others don't follow my lead"]],
+['waterviolet','Water Violet','healer','Quiet, self-reliant, a little aloof.',["I prefer to be alone and feel a bit apart from others","I'm capable and self-reliant but can seem aloof"]],
+['cerato','Cerato','healer','Doubts own judgement, seeks advice.',["I doubt my own judgement and ask everyone's advice"]],
+['gorse','Gorse','helper','Hopelessness and despair.',["I feel it's hopeless and nothing will help"]],
+['heather','Heather','helper','Dislikes being alone, talks about own troubles.',["I hate being alone and talk about my troubles a lot"]],
+['oak','Oak','helper','Struggles on bravely, never gives up.',["I keep battling on even though I'm exhausted"]],
+['olive','Olive','helper','Utterly worn out.',["I'm completely drained, mentally and physically"]],
+['rockwater','Rock Water','helper','Hard on self, rigid about rules.',["I'm very hard on myself and rigid about how things should be"]],
+['wildoat','Wild Oat','helper','Unsure which path to take in life.',["I don't know what direction my life should take"]],
+['aspen','Aspen','second','Vague fears with no known cause.',["I feel anxious but can't say why"]],
+['beech','Beech','second','Critical and intolerant of others.',["I'm critical and intolerant of other people's faults"]],
+['cherryplum','Cherry Plum','second','Fear of losing control.',["I'm afraid I'll lose control and snap"]],
+['chestnutbud','Chestnut Bud','second','Repeats the same mistakes.',["I keep repeating the same mistakes"]],
+['crabapple','Crab Apple','second','Feeling unclean or fixating on small flaws.',["I feel ashamed of myself or fixate on small flaws"]],
+['elm','Elm','second','Overwhelmed by responsibility.',["I'm overwhelmed by my responsibilities right now"]],
+['holly','Holly','second','Jealousy, envy, hatred and anger.',["I feel jealous, envious or suspicious","I feel hatred or anger towards someone"]],
+['honeysuckle','Honeysuckle','second','Longing for the past.',["I keep longing for the past"]],
+['hornbeam','Hornbeam','second','Mental tiredness, "Monday morning" feeling.',["I feel I can't face the day ahead"]],
+['larch','Larch','second','Lack of confidence, expects to fail.',["I expect to fail so I don't even try"]],
+['mustard','Mustard','second','Gloom that descends for no reason.',["A dark cloud of gloom comes over me for no reason"]],
+['pine','Pine','second','Guilt and self-blame.',["I blame myself and feel guilty"]],
+['redchestnut','Red Chestnut','second','Over-worry for loved ones.',["I constantly worry that something bad will happen to loved ones"]],
+['starofbethlehem','Star of Bethlehem','second','Shock and upset after bad news.',["I'm in shock after upsetting news or an event"]],
+['sweetchestnut','Sweet Chestnut','second','Extreme anguish, at the limit.',["I feel at the very limit of what I can bear"]],
+['walnut','Walnut','second','Helps with big changes.',["I'm going through a big change, like a move or new job, and feel unsettled"]],
+['whitechestnut','White Chestnut','second','Unwanted, repeating thoughts.',["Worrying thoughts go round and round in my head"]],
+['wildrose','Wild Rose','second','Resignation and apathy.',["I feel resigned and have stopped caring"]],
+['willow','Willow','second','Resentment and self-pity.',["I feel resentful and keep thinking 'why me?'"]]
+].map(a=>({id:a[0],name:a[1],group:a[2],sum:a[3],feel:a[4]}));
+const FEELS=R.flatMap(r=>r.feel.map(t=>({t,id:r.id})));
+const byId=Object.fromEntries(R.map(r=>[r.id,r]));
+
+// ---------- STATE ----------
+let S={xp:0,cards:[],sel:[],view:'home'};
+try{Object.assign(S,JSON.parse(localStorage.getItem('fye')||'{}'));S.sel=[];S.view='home'}catch(e){}
+const save=()=>{try{localStorage.setItem('fye',JSON.stringify({xp:S.xp,cards:S.cards}))}catch(e){}};
+const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const $=id=>document.getElementById(id);
+function addXP(n,id){S.xp+=n;if(id&&!S.cards.includes(id))S.cards.push(id);save();head()}
+function head(){
+  const lv=Math.floor(S.xp/100)+1;
+  $('xp').textContent=`Level ${lv} · ${S.xp} XP · ${S.cards.length}/38 cards`;
+  const items=[['home','Home'],['learn','Learn'],['find','Find my essences'],['match','Match game'],['sort','Sort game'],['collection','Collection']];
+  $('nav').innerHTML=items.map(([k,l])=>`<button class="${S.view===k?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+}
+function go(v){S.view=v;if(v==='match')startMatch();if(v==='sort')startSort();head();render();window.scrollTo(0,0)}
+const DISC='<div class="disc">This is a learning tool, not medical advice. Flower essences are complementary and do not diagnose, treat or cure illness. If you are unwell or struggling, please speak to a doctor or health professional.</div>';
+const cardHTML=(r,extra='')=>`<div class="card ${r.group}"><span class="tag ${r.group}">${G[r.group]}</span><h3 style="margin:.4em 0 .2em">${r.name}</h3><div>${r.sum}</div>${extra}</div>`;
+
+// ---------- VIEWS ----------
+const V={
+home(){return `<h2>Which flower essences are right for how you feel?</h2>
+<p>There are 38 Bach flower essences. That sounds like a lot, but they fall into three easy groups. Play, learn and find the ones that match you.</p>
+<p><button class="btn" onclick="go('learn')">New here? Start learning (2 min)</button> <button class="btn alt" onclick="go('find')">Jump to: find my essences</button></p>
+<div class="grid">
+<div class="card healer"><h3>🌿 12 Healers</h3>Your core character. Types of personality and lasting feelings.</div>
+<div class="card helper"><h3>🤝 7 Helpers</h3>Your support crew. Help when a feeling has dug in over time.</div>
+<div class="card second"><h3>🧰 Second 19</h3>Your toolkit. For particular moments, events and moods.</div></div>${DISC}`},
+learn(){return `<h2>Meet the three groups</h2>
+<p>Dr Edward Bach, a doctor in the 1930s, believed our emotions affect how we feel overall. He created 38 flower essences, each linked to one emotional state. Think of them as three teams.</p>
+<div class="card healer"><span class="tag healer">12 Healers</span><h3>Your core character</h3><p>These describe types of personality and deep-rooted traits, like being a worrier, a people-pleaser or always in a rush. Most people see themselves in one or two.</p><p class="note">${R.filter(r=>r.group==='healer').map(r=>r.name).join(', ')}</p></div><br>
+<div class="card helper"><span class="tag helper">7 Helpers</span><h3>Your support crew</h3><p>When a difficult feeling has gone on for a long while and a Healer isn't quite enough, a Helper adds support. Things like exhaustion, hopelessness or not knowing your path.</p><p class="note">${R.filter(r=>r.group==='helper').map(r=>r.name).join(', ')}</p></div><br>
+<div class="card second"><span class="tag second">Second 19</span><h3>Your toolkit</h3><p>These are for moments and moods: shock, guilt, jealousy, gloom, big changes. They often come and go with life events.</p><p class="note">${R.filter(r=>r.group==='second').map(r=>r.name).join(', ')}</p></div>
+<h3>How the game works</h3><p>1) Pick the feelings you relate to. 2) We show the essences that match, and why. 3) Most people choose a few (up to 5) for a blend. Then play the games to remember them.</p>
+<p><button class="btn" onclick="addXP(10);go('find')">Got it, find my essences (+10 XP)</button></p>${DISC}`},
+find(){
+  const crisis=`<div class="card" style="border-color:#c0504d"><b>If you are having thoughts of harming yourself or feel unsafe</b>, please reach out now. In the UK you can call Samaritans free on 116 123, or call 999 in an emergency. Elsewhere, contact your local emergency services or a crisis line.</div>`;
+  return `<h2>How are you feeling?</h2><p>Tap everything that sounds like you right now. Pick as many as you like.</p>
+  <div id="crisis"></div>
+  ${FEELS.map((f,i)=>`<button class="feel ${S.sel.includes(i)?'sel':''}" onclick="tog(${i})">${f.t}</button>`).join('')}
+  <button class="feel" style="border-color:#c0504d" onclick="showCrisis()">I'm having thoughts of harming myself</button>
+  <p><button class="btn" ${S.sel.length?'':'disabled style="opacity:.5"'} onclick="results()">Show my essences (${S.sel.length})</button></p>${DISC}`},
+results(){
+  const sc={};S.sel.forEach(i=>{const id=FEELS[i].id;(sc[id]=sc[id]||[]).push(FEELS[i].t)});
+  const list=Object.entries(sc).sort((a,b)=>b[1].length-a[1].length).slice(0,5);
+  list.forEach(([id])=>addXP(5,id));
+  return `<h2>Your essences</h2><p>Based on what you picked, here are your matches (up to 5, the most healingherbs.co.uk suggests combining). Each card is now in your collection.</p>
+  <div class="grid">${list.map(([id,w])=>cardHTML(byId[id],`<p class="note">Because you chose: “${w.join('”, “')}”</p>`)).join('')}</div>
+  <p class="note">+5 XP per new essence. Next, read about them on <a href="https://www.healingherbs.co.uk" target="_blank" rel="noopener">healingherbs.co.uk</a>.</p>
+  <p><button class="btn" onclick="S.sel=[];go('find')">Start again</button> <button class="btn alt" onclick="go('match')">Play the Match game</button></p>${DISC}`},
+collection(){return `<h2>Your collection</h2><p>${S.cards.length} of 38 collected. Find or answer correctly to unlock cards.</p>
+  ${['healer','helper','second'].map(g=>{const all=R.filter(r=>r.group===g),got=all.filter(r=>S.cards.includes(r.id)).length;return `<p><span class="tag ${g}">${G[g]}</span> ${got}/${all.length} ${got===all.length?'🏅 Badge earned!':''}</p>`}).join('')}
+  <div class="grid">${R.map(r=>S.cards.includes(r.id)?cardHTML(r):`<div class="card locked"><h3>🔒 ${G[r.group]}</h3>Locked</div>`).join('')}</div>`},
+match(){return M.done?`<h2>Round complete</h2><p>You scored ${M.score} of ${M.n}. +${M.score*10} XP</p><p><button class="btn" onclick="go('match')">Play again</button> <button class="btn alt" onclick="go('collection')">View collection</button></p>`:
+  `<h2>Match game</h2><p>Question ${M.i+1} of ${M.n}</p><div class="bar"><i style="width:${M.i/M.n*100}%"></i></div>
+  <div class="card"><p style="font-size:1.1rem">Someone says: <b>“${M.q.t}”</b></p><p>Which essence fits best?</p>
+  <div class="opts">${M.opts.map(id=>`<button class="feel ${M.ans?(id===M.q.id?'good':(id===M.pick?'bad':'')):''}" ${M.ans?'disabled':''} onclick="mPick('${id}')">${byId[id].name}</button>`).join('')}</div>
+  ${M.ans?`<p>${M.pick===M.q.id?'✅ Correct!':'Not quite.'} <b>${byId[M.q.id].name}</b>: ${byId[M.q.id].sum} (${G[byId[M.q.id].group]})</p><button class="btn" onclick="mNext()">Next</button>`:''}</div>`},
+sort(){return Z.done?`<h2>Round complete</h2><p>You scored ${Z.score} of ${Z.n}. +${Z.score*10} XP</p><p><button class="btn" onclick="go('sort')">Play again</button></p>`:
+  `<h2>Which group?</h2><p>Question ${Z.i+1} of ${Z.n}</p><div class="bar"><i style="width:${Z.i/Z.n*100}%"></i></div>
+  <div class="card"><h3>${Z.q.name}</h3><p>${Z.q.sum}</p><div class="opts">${['healer','helper','second'].map(g=>`<button class="feel ${Z.ans?(g===Z.q.group?'good':(g===Z.pick?'bad':'')):''}" ${Z.ans?'disabled':''} onclick="zPick('${g}')">${G[g]}</button>`).join('')}</div>
+  ${Z.ans?`<p>${Z.pick===Z.q.group?'✅ Correct!':'Not quite.'} ${Z.q.name} is in the ${G[Z.q.group]} group.</p><button class="btn" onclick="zNext()">Next</button>`:''}</div>`}
+};
+function render(){$('app').innerHTML=(S.view==='find'&&false)?'':V[S.view]()}
+function tog(i){const k=S.sel.indexOf(i);k>-1?S.sel.splice(k,1):S.sel.push(i);const y=window.scrollY;render();window.scrollTo(0,y)}
+function results(){S.view='results';render();window.scrollTo(0,0)}
+function showCrisis(){$('crisis').innerHTML='<div class="card" style="border-color:#c0504d"><b>If you are having thoughts of harming yourself or feel unsafe</b>, please reach out now. In the UK you can call Samaritans free on 116 123, or call 999 in an emergency. Elsewhere, contact your local emergency services or a crisis line.</div>';$('crisis').scrollIntoView({block:'center'})}
+
+// ---------- GAMES ----------
+let M={},Z={};
+function mQ(){M.q=M.qs[M.i];const wrong=shuffle(R.filter(r=>r.id!==M.q.id)).slice(0,2).map(r=>r.id);M.opts=shuffle([M.q.id,...wrong]);M.ans=false;M.pick=null}
+function startMatch(){M={n:5,i:0,score:0,done:false,qs:shuffle(FEELS).slice(0,5)};mQ()}
+function mPick(id){M.pick=id;M.ans=true;if(id===M.q.id){M.score++;addXP(10,id)}render()}
+function mNext(){M.i++;if(M.i>=M.n)M.done=true;else mQ();render()}
+function zQ(){Z.q=Z.qs[Z.i];Z.ans=false;Z.pick=null}
+function startSort(){Z={n:8,i:0,score:0,done:false,qs:shuffle(R).slice(0,8)};zQ()}
+function zPick(g){Z.pick=g;Z.ans=true;if(g===Z.q.group){Z.score++;addXP(10,Z.q.id)}render()}
+function zNext(){Z.i++;if(Z.i>=Z.n)Z.done=true;else zQ();render()}
+
+head();render();
+</script>
+</body>
+</html>
